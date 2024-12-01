@@ -1,0 +1,15 @@
+{
+    "devDependencies": {
+        "axios": "^1.7.8",
+        "cheerio": "^1.0.0",
+        "handlebars": "^4.7.8",
+        "vitepress": "^1.5.0"
+    },
+    "scripts": {
+        "predocs:dev": "node scripts/prebuild.js",
+        "docs:dev": "vitepress dev docs --host",
+        "predocs:build": "node scripts/prebuild.js",
+        "docs:build": "vitepress build docs",
+        "docs:preview": "vitepress preview docs"
+    }
+}

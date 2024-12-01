@@ -1,0 +1,6 @@
+docs/.vitepress/*
+docs/*/*.md
+node_modules/
+
+!docs/.vitepress/config.mts
+!docs/index.md

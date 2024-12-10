@@ -1,9 +1,6 @@
 import * as path from "path"
 import handlebars from "handlebars"
 import * as fs from "fs"
-import Fontmin from "fontmin"
-import { execSync } from "child_process"
-import rename from "gulp-rename"
 export const DOCS_DIR = path.resolve(".", "docs")
 export const INDEX_DIR = path.resolve(".", "data")
 export const INDEX_FILE = path.resolve(INDEX_DIR, "index.json")
@@ -26,6 +23,7 @@ function now() {
     const miliseconds = patch0(date.getMilliseconds())
     return `${y}-${m}-${d} ${hours}:${minutes}:${seconds}.${miliseconds}`
 }
+
 export const LOGGER = {
     info: (...args) => {
         console.log(now(), "INFO |", ...args)
@@ -33,14 +31,6 @@ export const LOGGER = {
     error: (...args) => {
         console.error(now(), "ERROR |", ...args)
     },
-}
-
-const FONT = {
-    REPO_OWNER: "lxgw",
-    REPO_NAME: "LxgwWenKaiTC",
-    FONT_STYLE: "Regular",
-    CACHE_TAR_FILE: "",
-    VERSION_DIR: "",
 }
 
 export class Poetry {
@@ -67,6 +57,7 @@ export class Line {
         this.note = note
     }
 }
+
 function render(ctx, templatePath, target) {
     const tpl = fs.readFileSync(templatePath)
     const content = compile(tpl.toString())(ctx)
@@ -119,19 +110,9 @@ export function chineseNumber(num) {
     }
     return target
 }
+
 export function docPathOf(section, file) {
     return path.join(DOCS_DIR, section, file || "index.md")
-}
-
-async function updateFontVersionDir(owner, repo) {
-    const releaseResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/releases/latest`)
-    const releaseData = await releaseResponse.json()
-    const downloadUrl = releaseData.assets[0].browser_download_url
-    LOGGER.info(`downloading ${downloadUrl} ...`)
-    const basename = path.basename(downloadUrl).trim().replace(".tar.gz", "")
-    FONT.VERSION_DIR = basename
-    LOGGER.info("set font version dir:", FONT.VERSION_DIR)
-    return downloadUrl
 }
 
 export function cacheExpired(cacheFile, expireDuration) {
@@ -139,25 +120,7 @@ export function cacheExpired(cacheFile, expireDuration) {
     return !fs.existsSync(cacheFile) || new Date().getTime() - fs.statSync(cacheFile).mtime.getTime() > expireDuration
 }
 
-export async function updateFontCache() {
-    FONT.CACHE_TAR_FILE = path.resolve(CACHE_DIR, `${FONT.REPO_OWNER}-${FONT.REPO_NAME}.tar.gz`)
-    if (cacheExpired(FONT.CACHE_TAR_FILE, WEEK)) {
-        LOGGER.info("font cache is expired, updating...")
-        // await downloadLatestRelease(FONT.REPO_OWNER, FONT.REPO_NAME, FONT.CACHE_TAR_FILE)
-        const downloadUrl = await updateFontVersionDir(FONT.REPO_OWNER, FONT.REPO_NAME)
-        const downloadCommand = ["curl", "-L", "-o", FONT.CACHE_TAR_FILE, downloadUrl].join(" ")
-        LOGGER.info("executing:", downloadCommand)
-        execSync(downloadCommand, { cwd: CACHE_DIR })
-        const decompressCommand = ["tar", "xf", FONT.CACHE_TAR_FILE, "-C", CACHE_DIR].join(" ")
-        LOGGER.info("executing:", decompressCommand)
-        execSync(decompressCommand, { cwd: CACHE_DIR })
-    } else {
-        await updateFontVersionDir(FONT.REPO_OWNER, FONT.REPO_NAME)
-        LOGGER.info("font cache is up to date")
-    }
-}
-
-function readDirRecursive(dirPath) {
+export function readDirRecursive(dirPath) {
     return fs
         .readdirSync(dirPath)
         .map((file) => {
@@ -174,7 +137,7 @@ function readDirRecursive(dirPath) {
         .reduce((acc, val) => acc.concat(val), [])
 }
 
-function readFileContent(filePaths) {
+export function readFileContent(filePaths) {
     return filePaths
         .map((filePath) => {
             try {
@@ -187,29 +150,4 @@ function readFileContent(filePaths) {
         })
         .map((str) => [...new Set(str)].join(""))
         .join("")
-}
-
-export function makeFont(ttf, dest) {
-    const content = readFileContent(readDirRecursive(DOCS_DIR))
-    const text = [...new Set(content)].join("")
-    ttf = ttf || path.resolve(CACHE_DIR, FONT.VERSION_DIR, `${FONT.REPO_NAME}-${FONT.FONT_STYLE}.ttf`)
-    dest = dest || ASSERTS_DIR
-    LOGGER.info("make font", ttf, "to", dest)
-    new Fontmin()
-        .use(
-            Fontmin.glyph({
-                text: text,
-            }),
-        )
-        .use(rename("font.woff2"))
-        .use(Fontmin.ttf2woff2())
-        .src(ttf)
-        .dest(dest)
-        .run((err, files) => {
-            if (err) {
-                LOGGER.error("font creation failed", err)
-                throw err
-            }
-            LOGGER.info(`${files.length} fonts created`, "of text length", text.length)
-        })
 }

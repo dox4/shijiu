@@ -2,16 +2,18 @@ import * as path from "path"
 import * as fs from "fs"
 import axios from "axios"
 import {
+    ASSERTS_DIR,
     CACHE_DIR,
     cacheExpired,
     DOCS_DIR,
     HALF_DAY,
     INDEX_FILE,
     LOGGER,
-    makeFont,
+    readDirRecursive,
+    readFileContent,
     SCRIPT_DIR,
-    updateFontCache,
 } from "./common.js"
+import { FontCache, makeFont } from "./font.js"
 
 const TITLE_KEY = "title"
 const SOURCE_KEY = "source"
@@ -33,7 +35,7 @@ function proxyConfig() {
         : null
 }
 
-class Cache {
+class TextCache {
     constructor(fileName, source) {
         this.fileName = fileName
         this.source = source
@@ -48,7 +50,7 @@ class Cache {
         const proxy = proxyConfig()
         const response = await axios.get(this.source, proxy)
         if (response.status != 200) {
-            console.error(response)
+            LOGGER.error(response)
             throw new Error(`fetch data from ${this.source} failed`)
         }
         const data = response.data
@@ -67,7 +69,7 @@ class Section {
 
     async findOrCreateCache() {
         const fileName = `${this.title}.${this.type}`
-        const cache = new Cache(fileName, this.source)
+        const cache = new TextCache(fileName, this.source)
         if (cache.shouldUpdate()) {
             await cache.updateCache()
         }
@@ -82,18 +84,25 @@ class Section {
 }
 
 async function main() {
-    await updateFontCache()
-    makeFont()
+    // make text data
     const data = JSON.parse(fs.readFileSync(INDEX_FILE, "utf8"))
     const sections = data.map((data) => new Section(data))
     const sidebar = []
     for (const section of sections) {
         await section.findOrCreateCache()
-        const naviagtion = await section.process()
-        sidebar.push(naviagtion)
+        const navigation = await section.process()
+        sidebar.push(navigation)
     }
     const sidebarPath = path.resolve(DOCS_DIR, ".vitepress", "sidebar.ts")
     fs.writeFile(sidebarPath, `export const sidebar = ${JSON.stringify(sidebar)}`, "utf8", () => {})
+
+    // create new font for the text
+    const content = readFileContent(readDirRecursive(DOCS_DIR))
+    const text = [...new Set(content)].join("")
+    const fontCache = new FontCache("lxgw", "LxgwWenkaiTC", "LXGWWenKaiTC-Regular.ttf", ASSERTS_DIR)
+    await fontCache.fetchLatestFontInfo()
+    await fontCache.updateFontCacheWhenExpired()
+    makeFont(text, fontCache.originalTTF(), ASSERTS_DIR)
 }
 
 await main()

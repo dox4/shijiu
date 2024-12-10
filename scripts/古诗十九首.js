@@ -1,7 +1,7 @@
 import * as path from "path"
 import * as fs from "fs"
 import * as cheerio from "cheerio"
-import { Poetry, Line, CACHE_DIR, docPathTo, renderIndex, chineseNumber } from "./common.js"
+import { Poetry, Line, CACHE_DIR, docPathOf, renderIndex, chineseNumber } from "./common.js"
 
 const TITLE = "古诗十九首"
 
@@ -19,7 +19,7 @@ export async function process(info) {
             mainComment: mainComment,
             notice: "本页面及其子页面文字转录自：[维基文库](" + info["source"] + ")",
         },
-        docPathTo(TITLE),
+        docPathOf(TITLE)
     )
 
     const dlIndex = mainDiv.children("dl").first().index()

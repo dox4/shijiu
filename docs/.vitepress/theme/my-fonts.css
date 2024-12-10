@@ -1,0 +1,9 @@
+@font-face {
+    font-family: "LXGW WenKai TC, 霞鹜文楷";
+    src: url("../../assets/font.woff2") format("truetype");
+}
+
+:root {
+    --vp-font-family-base: "LXGW WenKai TC, 霞鹜文楷";
+    --vp-font-family-mono: "Consolas, Monaco, 'Courier New', monospace";
+}

@@ -15,4 +15,18 @@ export default defineConfig({
         sidebar: sidebar,
         socialLinks: [{ icon: "github", link: "https://github.com/vuejs/vitepress" }],
     },
+    transformHead(_) {
+        return [
+            [
+                "link",
+                {
+                    rel: "preload",
+                    href: "font.woff2",
+                    as: "font",
+                    type: "font/woff2",
+                    crossorigin: "",
+                },
+            ],
+        ]
+    },
 })

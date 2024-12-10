@@ -1,18 +1,26 @@
 import * as path from "path"
 import * as fs from "fs"
 import axios from "axios"
-import { CACHE_DIR, DOCS_DIR, INDEX_FILE, SCRIPT_DIR } from "./common.js"
+import {
+    CACHE_DIR,
+    cacheExpired,
+    DOCS_DIR,
+    HALF_DAY,
+    INDEX_FILE,
+    LOGGER,
+    makeFont,
+    SCRIPT_DIR,
+    updateFontCache,
+} from "./common.js"
 
 const TITLE_KEY = "title"
 const SOURCE_KEY = "source"
 const SCRIPT_KEY = "script"
 const TYPE_KEY = "type"
 
-const HALF_DAY = 1000 * 60 * 60 * 12
-
 function proxyConfig() {
-    const proxyUrl = process.env.HTTPS_PROXY
-    console.debug(`HTTPS_PROXY: ${process.env.HTTPS_PROXY}`)
+    const proxyUrl = process.env.HTTPS_PROXY || ""
+    LOGGER.info(`HTTPS_PROXY: ${process.env.HTTPS_PROXY}`)
 
     return proxyUrl
         ? {
@@ -33,10 +41,7 @@ class Cache {
     }
 
     shouldUpdate() {
-        return (
-            !fs.existsSync(this.cacheFile) ||
-            new Date().getTime() - fs.statSync(this.cacheFile).mtime.getTime() > HALF_DAY
-        )
+        return cacheExpired(this.cacheFile, HALF_DAY)
     }
 
     async updateCache() {
@@ -47,9 +52,8 @@ class Cache {
             throw new Error(`fetch data from ${this.source} failed`)
         }
         const data = response.data
-        console.log(`fetch data from ${this.source}`)
-        console.log(data)
-        fs.writeFile(this.cacheFile, data, "utf8", () => console.log("write cache file: " + this.fileName))
+        LOGGER.info(`fetch data from ${this.source}`)
+        fs.writeFile(this.cacheFile, data, "utf8", () => LOGGER.info("write cache file: " + this.fileName))
     }
 }
 
@@ -78,6 +82,8 @@ class Section {
 }
 
 async function main() {
+    await updateFontCache()
+    makeFont()
     const data = JSON.parse(fs.readFileSync(INDEX_FILE, "utf8"))
     const sections = data.map((data) => new Section(data))
     const sidebar = []

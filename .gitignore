@@ -2,5 +2,12 @@ docs/.vitepress/*
 docs/*/*.md
 node_modules/
 
+*/.DS_Store
+.DS_Store
+
 !docs/.vitepress/config.mts
 !docs/index.md
+!docs/.vitepress/theme
+docs/assets
+
+cache/*

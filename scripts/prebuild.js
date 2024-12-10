@@ -83,7 +83,7 @@ class Section {
     }
 }
 
-async function main() {
+async function updateDocs() {
     // make text data
     const data = JSON.parse(fs.readFileSync(INDEX_FILE, "utf8"))
     const sections = data.map((data) => new Section(data))
@@ -95,14 +95,18 @@ async function main() {
     }
     const sidebarPath = path.resolve(DOCS_DIR, ".vitepress", "sidebar.ts")
     fs.writeFile(sidebarPath, `export const sidebar = ${JSON.stringify(sidebar)}`, "utf8", () => {})
-
-    // create new font for the text
-    const content = readFileContent(readDirRecursive(DOCS_DIR))
-    const text = [...new Set(content)].join("")
+}
+async function updateFont() {
+    // update font cache
     const fontCache = new FontCache("lxgw", "LxgwWenkaiTC", "LXGWWenKaiTC-Regular.ttf", ASSERTS_DIR)
     await fontCache.fetchLatestFontInfo()
     await fontCache.updateFontCacheWhenExpired()
+    // create new font for the text
+    const dirs = readDirRecursive(DOCS_DIR)
+    const content = readFileContent(dirs)
+    const text = [...new Set(content)].join("")
     makeFont(text, fontCache.originalTTF(), ASSERTS_DIR)
 }
 
-await main()
+await updateDocs()
+await updateFont()
